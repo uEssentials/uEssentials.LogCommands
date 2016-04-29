@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Essentials.LogCommands</RootNamespace>
-    <AssemblyName>Essentials.LogCommands</AssemblyName>
+    <AssemblyName>uEssentials.LogCommands</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
