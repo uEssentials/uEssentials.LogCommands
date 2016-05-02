@@ -57,14 +57,8 @@ namespace Essentials.LogCommands
             }
         }
 
-        public override void OnLoad()
-        {
-            Instance = this;
-        }
-
-        public override void OnUnload()
-        {
-        }
+        public override void OnLoad() => Instance = this;
+        public override void OnUnload() {}
 
         [SubscribeEvent(EventType.ESSENTIALS_COMMAND_POS_EXECUTED)]
         private void OnCommandExecuted( CommandPosExecuteEvent e )
