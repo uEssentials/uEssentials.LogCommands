@@ -30,7 +30,7 @@ using Essentials.Api.Events;
 using Essentials.Api.Module;
 using Essentials.Common;
 
-namespace Essentials.LogCommands
+namespace Essentials.Modules.LogCommands
 {
     [ModuleInfo(
         Name = "LogCommands",
@@ -38,32 +38,39 @@ namespace Essentials.LogCommands
         Version = "1.0.0",
         Flags = ModuleFlags.AUTO_REGISTER_EVENTS
     )]
-    public class TestModule : EssModule
+    public class LogCommands : EssModule
     {
         public static Dictionary<ulong, List<string>> Cache { get; } = new Dictionary<ulong, List<string>>();
-        public static TestModule Instance { get; private set; }
+        public static LogCommands Instance { get; private set; }
         private int _checks;
-        private char DirSep = Path.DirectorySeparatorChar;
+
         public string LogFolder
         {
             get
             {
-                var path = $"{Folder}{DirSep}logs{DirSep}";
+                var path = Path.Combine(Folder, "logs");
                 if ( !Directory.Exists(path) )
-                {
                     Directory.CreateDirectory( path );
-                }
                 return path;
             }
         }
 
-        public override void OnLoad() => Instance = this;
-        public override void OnUnload() {}
+        public override void OnLoad()
+        {
+            Logger.LogInfo("Enabled!");
+            Instance = this;
+        }
+
+        public override void OnUnload() {
+            Logger.LogInfo("Disabled!");
+        }
 
         [SubscribeEvent(EventType.ESSENTIALS_COMMAND_POS_EXECUTED)]
         private void OnCommandExecuted( CommandPosExecuteEvent e )
         {
             if ( e.Source.IsConsole ) return;
+
+            // TODO: Improve saving...
             if ( Cache.Count >= 15 || (_checks > 20 && CheckValues()) )
             {
                 SaveCache();
@@ -73,9 +80,10 @@ namespace Essentials.LogCommands
             {
                 _checks++;
             }
+
             var playerId = ulong.Parse(e.Source.Id);
             var sb = new StringBuilder();
-            
+
             sb.Append( $"[{DateTime.Now}] " )
               .Append( $"[{e.Result.Type}" )
               .Append( string.IsNullOrEmpty(e.Result.Message) ? "] " : $"({e.Result.Message})] " )
@@ -84,14 +92,11 @@ namespace Essentials.LogCommands
               .Append( $"\"/{e.Command.Name}" )
               .Append( e.Arguments.IsEmpty ? "\"" : $" {e.Arguments.Join(0)}\"" );
             var text = sb.ToString();
+
             if ( Cache.ContainsKey( playerId ) )
-            {
                 Cache[playerId].Add( text );
-            }
             else
-            {
                 Cache.Add( playerId, new List<string>{ text } );
-            }
         }
 
         private void SaveCache()
@@ -102,17 +107,13 @@ namespace Essentials.LogCommands
             new Thread(() => {
                 var text = new StringBuilder();
                 contents.ForEach((k) => {
-                    var playerFolder = $"{LogFolder}{k.Key}{DirSep}";
+                    var playerFolder = Path.Combine(LogFolder, k.Key.ToString());
                     var commandsFile = $"{playerFolder}commands.txt";
 
                     if ( !Directory.Exists( playerFolder ) )
-                    {
                         Directory.CreateDirectory( playerFolder );
-                    }
                     if ( !File.Exists( commandsFile ) )
-                    {
                         File.Create( commandsFile ).Close();
-                    }
 
                     k.Value.ForEach(t => text.Append( t ).Append( Environment.NewLine ) );
                     File.AppendAllText( commandsFile, text.ToString() );
