@@ -36,7 +36,7 @@ namespace Essentials.Modules.LogCommands
         Name = "LogCommands",
         Author = "Leonardosc",
         Version = "1.0.0",
-        Flags = ModuleFlags.AUTO_REGISTER_EVENTS
+        Flags = LoadFlags.AUTO_REGISTER_EVENTS
     )]
     public class LogCommands : EssModule
     {
