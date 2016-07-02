@@ -35,7 +35,7 @@ namespace Essentials.Modules.LogCommands
     [ModuleInfo(
         Name = "LogCommands",
         Author = "Leonardosc",
-        Version = "1.0.1",
+        Version = "1.0.2",
         Flags = LoadFlags.AUTO_REGISTER_EVENTS
     )]
     public class LogCommands : EssModule
@@ -57,13 +57,13 @@ namespace Essentials.Modules.LogCommands
 
         public override void OnLoad()
         {
-            Logger.LogInfo( "Enabled!" );
+            Logger.LogInfo( $"Enabled (v{this.Info.Version})!" );
             Instance = this;
         }
 
         public override void OnUnload()
         {
-            Logger.LogInfo( "Disabled!" );
+            Logger.LogInfo( $"Disabled (v{this.Info.Version})!" );
             SaveCache();
         }
 
