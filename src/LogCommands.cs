@@ -35,7 +35,7 @@ namespace Essentials.Modules.LogCommands
     [ModuleInfo(
         Name = "LogCommands",
         Author = "Leonardosc",
-        Version = "1.0.0",
+        Version = "1.0.1",
         Flags = LoadFlags.AUTO_REGISTER_EVENTS
     )]
     public class LogCommands : EssModule
@@ -57,15 +57,17 @@ namespace Essentials.Modules.LogCommands
 
         public override void OnLoad()
         {
-            Logger.LogInfo("Enabled!");
+            Logger.LogInfo( "Enabled!" );
             Instance = this;
         }
 
-        public override void OnUnload() {
-            Logger.LogInfo("Disabled!");
+        public override void OnUnload()
+        {
+            Logger.LogInfo( "Disabled!" );
+            SaveCache();
         }
 
-        [SubscribeEvent(EventType.ESSENTIALS_COMMAND_POS_EXECUTED)]
+        [SubscribeEvent( EventType.ESSENTIALS_COMMAND_POS_EXECUTED )]
         private void OnCommandExecuted( CommandPosExecuteEvent e )
         {
             if ( e.Source.IsConsole ) return;
@@ -91,27 +93,33 @@ namespace Essentials.Modules.LogCommands
               .Append( ": " )
               .Append( $"\"/{e.Command.Name}" )
               .Append( e.Arguments.IsEmpty ? "\"" : $" {e.Arguments.Join(0)}\"" );
+
             var text = sb.ToString();
 
             if ( Cache.ContainsKey( playerId ) )
                 Cache[playerId].Add( text );
             else
                 Cache.Add( playerId, new List<string>{ text } );
+
+            #if DEBUG
+              SaveCache();
+            #endif
         }
 
         private void SaveCache()
         {
-            var contents = new Dictionary<ulong, List<String>>(Cache);
+            var copyOfCache = new Dictionary<ulong, List<String>>(Cache);
             Cache.Clear();
 
             new Thread(() => {
                 var text = new StringBuilder();
-                contents.ForEach((k) => {
+                copyOfCache.ForEach((k) => {
                     var playerFolder = Path.Combine(LogFolder, k.Key.ToString());
-                    var commandsFile = $"{playerFolder}commands.txt";
+                    var commandsFile = Path.Combine( playerFolder, "commands.txt" );
 
                     if ( !Directory.Exists( playerFolder ) )
                         Directory.CreateDirectory( playerFolder );
+
                     if ( !File.Exists( commandsFile ) )
                         File.Create( commandsFile ).Close();
 
