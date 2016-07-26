@@ -34,8 +34,8 @@ namespace Essentials.Modules.LogCommands
 {
     [ModuleInfo(
         Name = "uEssentials.LogCommands",
-        Author = "Leonardosc",
-        Version = "1.0.2",
+        Author = "Leonardosnt",
+        Version = "$ASM_VERSION",
         Flags = LoadFlags.AUTO_REGISTER_EVENTS
     )]
     public class LogCommands : EssModule
