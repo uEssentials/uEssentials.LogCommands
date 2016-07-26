@@ -33,7 +33,7 @@ using Essentials.Common;
 namespace Essentials.Modules.LogCommands
 {
     [ModuleInfo(
-        Name = "LogCommands",
+        Name = "uEssentials.LogCommands",
         Author = "Leonardosc",
         Version = "1.0.2",
         Flags = LoadFlags.AUTO_REGISTER_EVENTS
