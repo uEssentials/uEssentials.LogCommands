@@ -2,3 +2,4 @@ lib/*.dll
 bin/ 
 obj/
 .vs/ 
+.idea/ 

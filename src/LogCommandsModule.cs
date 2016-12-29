@@ -21,13 +21,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
+using Essentials.Api.Configuration;
 using Essentials.Api.Event;
 using Essentials.Api.Events;
 using Essentials.Api.Module;
+using Essentials.Api.Task;
 using Essentials.Common;
 
 namespace Essentials.Modules.LogCommands {
@@ -38,22 +39,30 @@ namespace Essentials.Modules.LogCommands {
         Version = "$ASM_VERSION",
         Flags = LoadFlags.AUTO_REGISTER_EVENTS
     )]
-    public class LogCommands : EssModule {
+    public class LogCommands : EssModule<LogCommandsConfig> {
 
         public static Dictionary<ulong, List<string>> Cache { get; } = new Dictionary<ulong, List<string>>();
-        private int _checks;
 
         public string LogFolder {
             get {
                 var path = Path.Combine(Folder, "logs");
-                if (!Directory.Exists(path))
-                    Directory.CreateDirectory(path);
+                if (!Directory.Exists(path)) {
+                  Directory.CreateDirectory(path);
+                }
                 return path;
             }
         }
 
         public override void OnLoad() {
             Logger.LogInfo($"Enabled (v{this.Info.Version})!");
+
+            Task.Create()
+              .Id("LogCommands Save Cache")
+              .Async()
+              .Action(SaveCache)
+              .Interval(TimeSpan.FromSeconds(Configuration.SaveInterval))
+              .UseIntervalAsDelay()
+              .Submit();
         }
 
         public override void OnUnload() {
@@ -64,14 +73,6 @@ namespace Essentials.Modules.LogCommands {
         [SubscribeEvent(EventType.ESSENTIALS_COMMAND_POS_EXECUTED)]
         private void OnCommandExecuted(CommandPosExecuteEvent e) {
             if (e.Source.IsConsole) return;
-
-            // TODO: Improve saving...
-            if (Cache.Count >= 15 || (_checks > 20 && CheckValues())) {
-                SaveCache();
-                _checks = 0;
-            } else {
-                _checks++;
-            }
 
             var playerId = ulong.Parse(e.Source.Id);
             var sb = new StringBuilder();
@@ -85,45 +86,56 @@ namespace Essentials.Modules.LogCommands {
                 .Append(e.Arguments.IsEmpty ? "\"" : $" {e.Arguments.Join(0)}\"");
 
             var text = sb.ToString();
-
-            if (Cache.ContainsKey(playerId))
-                Cache[playerId].Add(text);
-            else
-                Cache.Add(playerId, new List<string> { text });
-
-            #if DEBUG
-            SaveCache();
-            #endif
+            if (Cache.ContainsKey(playerId)) {
+              Cache[playerId].Add(text);
+            } else {
+              Cache.Add(playerId, new List<string> { text });
+            }
         }
 
         private void SaveCache() {
-            var copyOfCache = new Dictionary<ulong, List<String>>(Cache);
-            Cache.Clear();
+            lock (Cache) {
+#if DEBUG
+              var sw = Stopwatch.StartNew();
+#endif
+              var text = new StringBuilder();
+                Cache.ForEach((k) => {
+                  var playerFolder = Path.Combine(LogFolder, k.Key.ToString());
+                  var commandsFile = Path.Combine(playerFolder, "commands.txt");
 
-            new Thread(() => {
-                var text = new StringBuilder();
-                copyOfCache.ForEach((k) => {
-                    var playerFolder = Path.Combine(LogFolder, k.Key.ToString());
-                    var commandsFile = Path.Combine(playerFolder, "commands.txt");
+                  if (!Directory.Exists(playerFolder))
+                    Directory.CreateDirectory(playerFolder);
 
-                    if (!Directory.Exists(playerFolder))
-                        Directory.CreateDirectory(playerFolder);
+                  if (!File.Exists(commandsFile))
+                    File.Create(commandsFile).Close();
 
-                    if (!File.Exists(commandsFile))
-                        File.Create(commandsFile).Close();
-
-                    k.Value.ForEach(t => text.Append(t).Append(Environment.NewLine));
-                    File.AppendAllText(commandsFile, text.ToString());
+                  k.Value.ForEach(t => text.Append(t).Append(Environment.NewLine));
+                  File.AppendAllText(commandsFile, text.ToString());
                 });
-            }).Start();
+
+                Cache.Clear();
+#if DEBUG
+                sw.Stop();
+                Logger.LogDebug($"Save cache took: {sw.ElapsedMilliseconds}ms");
+#endif
+            }
         }
 
-        /*
-            Sum all commands in cache, return true if > 100
-        */
+    }
 
-        private static bool CheckValues() {
-            return Cache.Values.Sum(a => a.Count) > 100;
+    public class LogCommandsConfig : JsonConfig {
+
+        /// <summary>
+        /// Interval to save cache. In seconds.
+        /// </summary>
+        public int SaveInterval { get; set; }
+
+        public override void LoadDefaults() {
+#if DEBUG
+            SaveInterval = 10;
+#else
+            SaveInterval = 60; // 2min
+#endif
         }
 
     }
